@@ -3,6 +3,8 @@
 A Sublime Text 3 plugin for the [Xeto](https://github.com/Project-Haystack/xeto)
 type system.
 
+![screenshot][screenshot]
+
 ## Installation
 
 ### Using Package Control (Recommended)
@@ -20,3 +22,5 @@ Clone this repository into your `Sublime Text 3/Packages/` directory
 ```shell
 Sublime Text 3/Packages/$  git clone https://github.com/mgiannini/sublime-xeto.git
 ```
+
+[screenshot]: screenshot.png
