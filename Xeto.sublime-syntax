@@ -1,0 +1,168 @@
+%YAML 1.2
+---
+name: Xeto
+file_extensions: [xeto]
+scope: source.xeto
+version: 2
+
+###############################################################################
+
+variables:
+  spec: '\p{Upper}[a-zA-Z0-9_]*'
+  id: '[a-z_][a-zA-Z0-9_]*'
+  ref: '([[:alnum:]_~]|[:-](?=[[:alnum:]_~]))+'
+  number: '(\B\.[0-9][0-9_]*|\b[0-9][0-9_]*(\.[0-9][0-9_]*)?)([eE][-+]?[0-9][0-9_]*)?'
+
+# Libs have a globally unique dotted name.  Lib names must obey the following
+# restrictions:
+#   - Must contain only ASCII lower case letters, digits, or underbar
+#   - Use dot as separator character
+#   - Each dotted section must start with a lowercase ASCII letter
+#   - Dots and underbars may only be used between letters and digits
+  # lib_name: '{{lib_section}}(?:\.{{lib_section}})*'
+  lib_name: '{{lib_section}}(?:\.{{lib_section}})*'
+  lib_section: '(?:{{lib_section_first_char}}{{lib_section_rest}}*)'
+  lib_section_first_char: '[a-z]'
+  lib_section_rest: '(?:[a-z0-9]|[a-z0-9]_[a-z0-9])'
+
+###############################################################################
+
+contexts:
+
+###[ Prototypes ]################################################################
+
+  prototype:
+    - include: comments
+
+  else-pop:
+    - match: (?=\S)
+      pop: 1
+
+###[ Main ]################################################################
+
+  main:
+    - include: type
+    - include: spec-name
+    - include: meta
+    - include: strings
+    - include: numbers
+    - include: refs
+    - include: symbols
+
+  type:
+    - match: '(?!\b{{spec}}\s*:\s*?)(\b{{spec}}\b)'
+      scope: storage.type.spec.xeto
+    - match: '(?!\b{{spec}}\b:\s*?)({{lib_section}})'
+      scope: meta.namespace.lib.xeto
+      push:
+        - match: '\.'
+          scope: punctuation.separator.dot.xeto
+        - match: '{{lib_section}}'
+          scope: meta.namespace.lib.xeto
+        - match: '::'
+          scope: punctuation.separator.qname.xeto
+        - include: else-pop
+
+  meta:
+    - match: '<'
+      scope: punctuation.section.meta.begin.xeto
+      push:
+        - match: '>'
+          scope: punctuation.section.meta.end.xeto
+          pop: 1
+        - match: '({{id}})'
+          scope: variable.paramter.meta.xeto
+          push:
+            - match: ','
+              scope: punctuation.separator.meta.xeto
+              pop: 1
+            - match: ':'
+              scope: punctuation.separator.colon.xeto
+              push:
+                - include: exprs
+                - include: else-pop
+            - include: else-pop
+        - include: exprs
+
+  spec-name:
+    - match: '\b{{spec}}\b'
+      scope: entity.name.class.spec.xeto
+
+  identifer:
+    - match: '\b{{id}}\b'
+      scope: variable.other.id.xeto
+
+  exprs:
+    - include: type
+    - include: strings
+    - include: numbers
+    - include: refs
+
+  strings:
+    - include: double-quoted-string
+
+  numbers:
+    - match: '\b0x[0-9A-Fa-f][_0-9A-Fa-f]*'
+      scope: constant.numeric.hex.xeto
+    - match: 0x
+      scope: invalid.illegal.hex.xeto
+
+    - match: '\b0b[0-9A-Fa-f][_0-9A-Fa-f]*'
+      scope: constant.numeric.hex.xeto
+    - match: 0b
+      scope: invalid.illegal.hex.xeto
+
+    - match: '{{number}}(ns|ms|sec|min|hr|day)'
+      scope: constant.other.duration.xeto
+
+    - match: '{{number}}[fdFD]?'
+      scope: constant.numeric.number.xeto
+
+  refs:
+    - match: '(@)({{ref}})+'
+      captures:
+        1: punctuation.definition.keyword.ref.xeto
+        2: variable.function.ref.simple.xeto
+
+  double-quoted-string:
+    - match: '"'
+      push:
+        - meta_include_prototype: false
+        - meta_scope: string.quoted.double.xeto
+        - match: '"'
+          pop: true
+        - match: .
+
+  symbols:
+    - match: '[\?]'
+      scope: keyword.operator.maybe.xeto
+    - match: '[:]'
+      scope: punctuation.separator.colon.xeto
+
+###[ Comments ]################################################################
+
+  comments:
+    - include: line-comment
+    - include: multiline-comment
+
+  line-comment:
+    - match: //+
+      scope: punctuation.definition.comment.xeto
+      push: line-comment-body
+
+  line-comment-body:
+    - meta_include_prototype: false
+    - meta_scope: comment.line.double-slash.xeto
+    - match: (//+)?\n
+      captures:
+        1: punctuation.definition.comment.xeto
+      pop: 1
+
+  multiline-comment:
+    - match: /\*
+      push:
+        - meta_scope: comment.block.xeto
+        - include: multiline-comment
+        - match: \*/
+          pop: true
+        - match: .
