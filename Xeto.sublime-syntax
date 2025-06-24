@@ -10,8 +10,11 @@ version: 2
 variables:
   spec: '\p{Upper}[a-zA-Z0-9_]*'
   id: '[a-z_][a-zA-Z0-9_]*'
-  ref: '([[:alnum:]_~]|[:-](?=[[:alnum:]_~]))+'
   number: '(\B\.[0-9][0-9_]*|\b[0-9][0-9_]*(\.[0-9][0-9_]*)?)([eE][-+]?[0-9][0-9_]*)?'
+  ref: '([[:alnum:]_~]|[:-](?=[[:alnum:]_~]))+'
+  # ref: '{{ref_char}}*{{ref_end}}'
+  # ref_char: '[a-zA-Z0-9_~:-]'
+  # ref_end: '[a-zA-Z0-9_~]'
 
 # Libs have a globally unique dotted name.  Lib names must obey the following
 # restrictions:
@@ -119,10 +122,17 @@ contexts:
       scope: constant.numeric.number.xeto
 
   refs:
-    - match: '(@)({{ref}})+'
+    - match: '(@)(?={{ref}})'
       captures:
         1: punctuation.definition.keyword.ref.xeto
-        2: variable.function.ref.simple.xeto
+      push:
+        - match: '\.'
+          scope: punctuation.separator.dot.xeto
+        - match: '{{ref}}'
+          scope: variable.function.ref.simple.xeto
+        - match: '::'
+          scope: punctuation.separator.qname.xeto
+        - include: else-pop
 
   double-quoted-string:
     - match: '"'
